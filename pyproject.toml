@@ -1,0 +1,6 @@
+[project]
+dependencies = [
+  "colorama",
+]
+dynamic = ["version"]
+name = "rpycli"
