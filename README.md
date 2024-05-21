@@ -1,4 +1,4 @@
-# rpycli---Richard's Python Library for CLI Apps
+# rpycli&mdash;Richard's Python Library for CLI Apps
 
 ## Licence
 
