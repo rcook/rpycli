@@ -1,6 +1,7 @@
 [project]
 dependencies = [
   "colorama",
+  "pywin32 ; platform_system == \"Windows\"",
 ]
 dynamic = ["version"]
 name = "rpycli"
