@@ -34,16 +34,16 @@ def clean_dir(dir, fail_ok=False):
                     p.rmdir()
 
 
-def iter_files(dir, include_suffixes=None, ignore_dirs=None):
+def iter_files(start_dir, include_suffixes=None, ignore_dirs=None):
     include_suffixes = {x.lower() for x in include_suffixes} \
         if include_suffixes is not None \
         else None
 
-    for d, ds, fs in dir.walk():
-        if ignore_dirs is not None:
-            for d in ignore_dirs:
-                if d in ds:
-                    ds.remove(d)
+    for d, ds, fs in start_dir.walk():
+        if ignore_dirs is not None and len(ds) > 0:
+            for ignore_dir in ignore_dirs:
+                if ignore_dir in ds:
+                    ds.remove(ignore_dir)
 
         ds.sort()
         fs.sort()
