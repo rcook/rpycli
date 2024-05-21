@@ -8,7 +8,8 @@ import sys
 MISSING = object()
 
 
-def path(cwd, s):
+def path(cwd, s, *, remove_trailing_quote=False):
+    s = s.rstrip("\"") if remove_trailing_quote else s
     return Path(cwd, Path(s).expanduser()).resolve()
 
 
