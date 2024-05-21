@@ -14,15 +14,20 @@ def invoke_main(func):
         if system() != "Windows":
             return argv
 
-        from win32api import GetCommandLine
+        import win32api
+        command_line = win32api.GetCommandLine()
 
-        command_line = GetCommandLine()
         new_argv = []
         for arg in argv:
-            if arg.endswith("\""):
-                s = arg.rstrip("\"")
-                if command_line.find("\"" + s + "\\\"") != -1:
-                    new_argv.append(s)
+            quote_index = arg.find("\"")
+            if quote_index != -1:
+                prefix = arg[:quote_index]
+                prefix_index = command_line.find("\"" + prefix + "\\\"")
+                if prefix_index != -1:
+                    new_argv.append(prefix)
+                    suffix = arg[quote_index + 1:].lstrip(" ")
+                    if len(suffix) > 0:
+                        new_argv.append(suffix)
                     continue
             new_argv.append(arg)
         return new_argv
