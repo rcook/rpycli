@@ -25,7 +25,8 @@ class ArgumentParser(argparse.ArgumentParser):
         func = args.func
         spec = inspect.getfullargspec(func)
         d = {name: get_value(name) for name in spec.args}
-        result = func(**d, **kwargs)
+
+        result = func(**d)
         match result:
             case None: pass
             case bool() as b if not b: sys.exit(1)
