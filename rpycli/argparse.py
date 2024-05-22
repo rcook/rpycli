@@ -70,7 +70,6 @@ class CommonArgumentsMixin:
             "--log",
             "-l",
             dest="log_level",
-            metavar="LOG_LEVEL",
             type=str,
             choices=LOG_LEVEL_NAMES,
             required=False,
@@ -81,7 +80,6 @@ class CommonArgumentsMixin:
         return self.add_argument(
             "--dry-run",
             dest="dry_run",
-            metavar="DRY_RUN",
             action=BooleanOptionalAction,
             required=False,
             default=True,
@@ -92,7 +90,6 @@ class CommonArgumentsMixin:
             "--force",
             "-f",
             dest="force",
-            metavar="FORCE",
             action=BooleanOptionalAction,
             required=False,
             default=False,
