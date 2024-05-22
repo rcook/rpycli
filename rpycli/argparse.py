@@ -43,14 +43,17 @@ class ArgumentParser(argparse.ArgumentParser):
         parser.set_defaults(func=func)
         return parser
 
-    def add_argument(self, *args, **kwargs):
+    def add_argument(self, *args, redact=MISSING, **kwargs):
         help = kwargs.get("help", MISSING)
         if help is not MISSING:
             default = kwargs.get("default", MISSING)
             if default is not MISSING and default != "==SUPPRESS==":
-                match default:
-                    case bool() as b: default_str = "(true)" if b else "(false)"
-                    case _: default_str = str(default)
+                if redact is not MISSING and redact:
+                    default_str = "(redacted)"
+                else:
+                    match default:
+                        case bool() as b: default_str = "(true)" if b else "(false)"
+                        case _: default_str = str(default)
                 kwargs["help"] = f"{help} (default: {default_str})"
 
         return super().add_argument(*args, **kwargs)
