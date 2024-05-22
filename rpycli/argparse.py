@@ -49,6 +49,10 @@ class ArgumentParser(argparse.ArgumentParser):
                         case _: default_str = str(default)
                 kwargs["help"] = f"{help} (default: {default_str})"
 
+        dest = kwargs.get("dest", MISSING)
+        if dest is not MISSING and "metavar" not in kwargs:
+            kwargs["metavar"] = dest.upper()
+
         return super().add_argument(*args, **kwargs)
 
     def run(self, argv, **kwargs):
