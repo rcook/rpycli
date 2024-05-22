@@ -9,7 +9,7 @@ def init_rpycli():
     just_fix_windows_console()
 
 
-def invoke_main(func):
+def invoke_main(func, init=True):
     def munge(argv):
         if system() != "Windows":
             return argv
@@ -31,5 +31,8 @@ def invoke_main(func):
                     continue
             new_argv.append(arg)
         return new_argv
+
+    if init:
+        init_rpycli()
 
     func(cwd=Path(os.getcwd()).resolve(), argv=munge(sys.argv[1:]))
