@@ -48,7 +48,10 @@ class ArgumentParser(argparse.ArgumentParser):
         if help is not MISSING:
             default = kwargs.get("default", MISSING)
             if default is not MISSING and default != "==SUPPRESS==":
-                kwargs["help"] = f"{help} (default: {default})"
+                match default:
+                    case bool() as b: default_str = "(true)" if b else "(false)"
+                    case _: default_str = str(default)
+                kwargs["help"] = f"{help} (default: {default_str})"
 
         return super().add_argument(*args, **kwargs)
 
