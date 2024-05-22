@@ -1,3 +1,4 @@
+from argparse import BooleanOptionalAction
 from functools import cached_property
 from pathlib import Path
 from rpycli.context import DEFAULT_LOG_LEVEL_NAME, LOG_LEVEL_NAMES
@@ -60,14 +61,36 @@ class ArgumentParser(argparse.ArgumentParser):
         return self.add_subparsers(required=True, dest="command")
 
 
-def add_log_level_argument(parser):
-    parser.add_argument(
-        "--log",
-        "-l",
-        dest="log_level",
-        metavar="LOG_LEVEL",
-        choices=LOG_LEVEL_NAMES,
-        type=str,
-        required=False,
-        default=DEFAULT_LOG_LEVEL_NAME,
-        help=f"log level (one of: {', '.join(LOG_LEVEL_NAMES)})")
+class CommonArgumentsMixin:
+    def add_log_level_argument(self):
+        return self.add_argument(
+            "--log",
+            "-l",
+            dest="log_level",
+            metavar="LOG_LEVEL",
+            type=str,
+            choices=LOG_LEVEL_NAMES,
+            required=False,
+            default=DEFAULT_LOG_LEVEL_NAME,
+            help=f"log level (one of: {', '.join(LOG_LEVEL_NAMES)})")
+
+    def add_dry_run_argument(self):
+        return self.add_argument(
+            "--dry-run",
+            dest="dry_run",
+            metavar="DRY_RUN",
+            action=BooleanOptionalAction,
+            required=False,
+            default=True,
+            help="dry run")
+
+    def add_force_argument(self):
+        return self.add_argument(
+            "--force",
+            "-f",
+            dest="force",
+            metavar="FORCE",
+            action=BooleanOptionalAction,
+            required=False,
+            default=False,
+            help="force overwrite")
