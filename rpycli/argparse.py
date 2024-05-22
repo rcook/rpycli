@@ -4,6 +4,7 @@ from pathlib import Path
 from rpycli.context import DEFAULT_LOG_LEVEL_NAME, LOG_LEVEL_NAMES
 import argparse
 import inspect
+import rpycli.invoke
 import sys
 
 
@@ -17,17 +18,9 @@ def path(cwd, s):
 class ArgumentParser(argparse.ArgumentParser):
     @staticmethod
     def invoke_func(args, **kwargs):
-        def get_value(name):
-            value = kwargs.pop(name, MISSING)
-            if value is not MISSING:
-                return value
-            return getattr(args, name)
-
-        func = args.func
-        spec = inspect.getfullargspec(func)
-        d = {name: get_value(name) for name in spec.args}
-
-        result = func(**d)
+        d = args.__dict__.copy()
+        func = d.pop("func")
+        result = rpycli.invoke.invoke_func(func=func, **d, **kwargs)
         match result:
             case None: pass
             case bool() as b if not b: sys.exit(1)
