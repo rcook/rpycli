@@ -78,6 +78,10 @@ class Context(metaclass=ContextMeta):
 
     @contextmanager
     def span(self, name):
+        match name:
+            case list() | tuple() as names: name = "/".join(str(x) for x in names)
+            case _: name = str(name)
+
         def report_end(log_level, disposition):
             duration = timedelta(seconds=perf_counter() - start_time)
             getattr(
