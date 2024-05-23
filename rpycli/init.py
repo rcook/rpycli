@@ -1,7 +1,6 @@
 from colorama import just_fix_windows_console
 from pathlib import Path
 from platform import system
-import os
 import sys
 
 
@@ -35,4 +34,4 @@ def call_main(func, init=True):
     if init:
         init_rpycli()
 
-    func(cwd=Path(os.getcwd()).resolve(), argv=munge(sys.argv[1:]))
+    func(cwd=Path.cwd(), argv=munge(sys.argv[1:]))
