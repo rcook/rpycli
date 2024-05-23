@@ -5,7 +5,7 @@ import shlex
 
 
 @contextmanager
-def proc_stream(ctx, operation, command):
+def proc_stream(ctx, op, command, text=True, encoding="utf-8", errors="replace"):
     c = [str(x) for x in command]
     command_str = shlex.join(c)
 
@@ -14,12 +14,14 @@ def proc_stream(ctx, operation, command):
         yield None, []
     else:
         ctx.log_info(f"command: {command_str}")
-        with ctx.span(operation):
-            with Popen(c, stdout=PIPE, stderr=STDOUT, text=True) as proc:
-                stdout = iter(proc.stdout.readline, "")
+        with ctx.span(op):
+            with Popen(c, stdout=PIPE, stderr=STDOUT, text=False) as proc:
+                stdout = iter(proc.stdout.readline, b"")
+                if text:
+                    stdout=map(lambda b: b.decode(encoding=encoding, errors=errors), stdout)
                 yield proc, stdout
 
             proc.wait()
             if proc.returncode != 0:
                 raise ReportableError(
-                    f"{operation} failed with exit code {proc.returncode}: pass \"--log debug\" to get more details")
+                    f"{op} failed with exit code {proc.returncode}: pass \"--log debug\" to get more details")
