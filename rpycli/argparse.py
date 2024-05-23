@@ -63,6 +63,10 @@ class ArgumentParser(argparse.ArgumentParser):
         return super().add_argument(*args, **kwargs)
 
     def parse_args(self, *args, **kwargs):
+        if len(args) == 0:
+            self.print_usage()
+            sys.exit(2)
+
         namespace = super().parse_args(*args, **kwargs)
 
         command = []
