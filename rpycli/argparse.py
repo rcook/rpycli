@@ -62,12 +62,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return super().add_argument(*args, **kwargs)
 
-    def parse_args(self, *args, **kwargs):
-        if len(args) == 0:
+    def parse_args(self, args=None, namespace=None):
+        if args is not None and len(args) == 0:
             self.print_usage()
             sys.exit(2)
 
-        namespace = super().parse_args(*args, **kwargs)
+        namespace = super().parse_args(args=args, namespace=namespace)
 
         command = []
         i = 0
