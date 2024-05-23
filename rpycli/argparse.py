@@ -3,7 +3,6 @@ from functools import cached_property
 from pathlib import Path
 from rpycli.context import DEFAULT_LOG_LEVEL_NAME, LOG_LEVEL_NAMES
 import argparse
-import inspect
 import rpycli.invoke
 import sys
 
@@ -29,11 +28,19 @@ class ArgumentParser(argparse.ArgumentParser):
             case _: raise NotImplementedError(f"Unsupported result {result}")
 
     def add_command(self, *args, func, **kwargs):
+        parser = self.add_command_group(*args, **kwargs)
+        parser.set_defaults(func=func)
+        return parser
+
+    def add_command_group(self, *args, **kwargs):
         help = kwargs.get("help", MISSING)
         if help is not MISSING and len(help) > 0 and "description" not in kwargs:
             kwargs["description"] = help[0].upper() + help[1:]
         parser = self._commands.add_parser(*args, **kwargs)
-        parser.set_defaults(func=func)
+
+        assert not hasattr(parser, "_RPYCLI_parent")
+        parser._RPYCLI_parent = self
+
         return parser
 
     def add_argument(self, *args, redact=MISSING, **kwargs):
@@ -55,13 +62,45 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return super().add_argument(*args, **kwargs)
 
+    def parse_args(self, *args, **kwargs):
+        namespace = super().parse_args(*args, **kwargs)
+
+        command = []
+        i = 0
+        while True:
+            k = f"_RPYCLI_command_{i}"
+            c = getattr(namespace, k, None)
+            if c is None:
+                break
+            delattr(namespace, k)
+            command.append(c)
+            i += 1
+
+        setattr(namespace, "command", command)
+
+        return namespace
+
     def run(self, argv, **kwargs):
         args = self.parse_args(argv)
         self.__class__.invoke_func(args, **kwargs)
 
     @cached_property
     def _commands(self):
-        return self.add_subparsers(required=True, dest="command")
+        parent = getattr(self, "_RPYCLI_parent", None)
+        if parent is not None:
+            group_action = parent._subparsers._group_actions[0]
+            depth = group_action._RPYCLI_depth + 1
+        else:
+            depth = 0
+
+        subparsers = self.add_subparsers(
+            required=True,
+            dest=f"_RPYCLI_command_{depth}")
+
+        assert not hasattr(subparsers, "_RPYCLI_depth")
+        subparsers._RPYCLI_depth = depth
+
+        return subparsers
 
 
 class CommonArgumentsMixin:
