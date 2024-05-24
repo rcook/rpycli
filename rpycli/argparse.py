@@ -1,4 +1,5 @@
 from argparse import BooleanOptionalAction
+from dataclasses import MISSING
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
@@ -6,9 +7,6 @@ from rpycli.context import DEFAULT_LOG_LEVEL_NAME, LOG_LEVEL_NAMES
 import argparse
 import rpycli.invoke
 import sys
-
-
-MISSING = object()
 
 
 def path(cwd, s):
