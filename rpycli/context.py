@@ -2,6 +2,7 @@ from colorama import Fore, Style
 from contextlib import contextmanager
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
+from enum import Enum, unique
 from functools import cache, partialmethod
 from time import perf_counter
 import contextlib
@@ -10,16 +11,30 @@ import logging
 import sys
 
 
-DEFAULT_LOG_LEVEL_NAME = logging.getLevelName(logging.INFO).lower()
-LOG_LEVEL_NAMES = list(map(lambda p: p[0].lower(), sorted(
-    filter(
-        lambda p: p[0] not in {"NOTSET", "WARN"},
-        logging.getLevelNamesMapping().items()),
-    key=lambda p: p[1])))
 SKIP_ARGS = ["command", "func"]
 
 
-class ContextMeta(type):
+@unique
+class LogLevel(Enum):
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+    FATAL = logging.FATAL
+
+    @classmethod
+    def from_arg_str(cls, s):
+        for member in cls:
+            if member.arg_str == s:
+                return member
+        raise ValueError(f"invalid value '{s}'")
+
+    @property
+    def arg_str(self):
+        return self.name.lower()
+
+
+class LoggerMeta(type):
     def __new__(cls, name, bases, dct):
         def get_calling_module(records):
             for record in records:
@@ -40,41 +55,16 @@ class ContextMeta(type):
 
         this_module = sys.modules[__name__]
         t = super().__new__(cls, name, bases, dct)
-        for n in LOG_LEVEL_NAMES:
-            setattr(t, f"log_{n}", partialmethod(log, n))
+        for l in LogLevel:
+            name = l.name.lower()
+            setattr(t, name, partialmethod(log, name))
         return t
 
 
 @dataclass(frozen=True)
-class Context(metaclass=ContextMeta):
+class Logger(metaclass=LoggerMeta):
     name: str | None
     log_level: int
-
-    @classmethod
-    def from_args(cls, args, name=None):
-        def encode_arg_value(obj):
-            match obj:
-                case list() as items:
-                    return f"[{', '.join(encode_arg_value(item) for item in items)}]"
-                case _: return str(obj)
-
-        d = args.__dict__.copy()
-        log_level = logging.getLevelNamesMapping()[d.pop("log_level").upper()]
-        for k in SKIP_ARGS:
-            del d[k]
-
-        ctx_cls = make_dataclass(
-            cls_name="Context",
-            fields=[(k, type(v)) for k, v in d.items()],
-            bases=(cls,),
-            frozen=True)
-
-        ctx = ctx_cls(name=name, log_level=log_level, **d)
-        for k in sorted(args.__dict__.keys() - SKIP_ARGS):
-            s = encode_arg_value(args.__dict__[k])
-            ctx.log_info(f"{k} = {s}")
-
-        return ctx
 
     @contextmanager
     def span(self, name):
@@ -84,12 +74,11 @@ class Context(metaclass=ContextMeta):
 
         def report_end(log_level, disposition):
             duration = timedelta(seconds=perf_counter() - start_time)
-            getattr(
-                self,
-                f"log_{log_level}")(f"[{name}] {disposition} after {duration}")
+            method = getattr(self, log_level)
+            method(f"[{name}] {disposition} after {duration}")
 
         start_time = perf_counter()
-        self.log_info(f"[{name}] started")
+        self.info(f"[{name}] started")
         try:
             yield
             report_end(log_level="info", disposition="completed")
@@ -116,3 +105,51 @@ class Context(metaclass=ContextMeta):
         logger.setLevel(log_level)
         logger.addHandler(handler)
         return logger
+
+
+class ContextMeta(type):
+    def __new__(cls, name, bases, dct):
+        def log(self, log_level, *args, **kwargs):
+            method = getattr(self.logger, log_level)
+            return method(*args, **kwargs)
+
+        t = super().__new__(cls, name, bases, dct)
+        for l in LogLevel:
+            name = l.name.lower()
+            setattr(t, f"log_{name}", partialmethod(log, name))
+        return t
+
+
+@dataclass(frozen=True)
+class Context(metaclass=ContextMeta):
+    logger: Logger
+
+    @classmethod
+    def from_args(cls, args, name=None):
+        def encode_arg_value(obj):
+            match obj:
+                case list() as items:
+                    return f"[{', '.join(encode_arg_value(item) for item in items)}]"
+                case _: return str(obj)
+
+        d = args.__dict__.copy()
+        log_level = d.pop("log_level").value
+        for k in SKIP_ARGS:
+            del d[k]
+
+        ctx_cls = make_dataclass(
+            cls_name="Context",
+            fields=[(k, type(v)) for k, v in d.items()],
+            bases=(cls,),
+            frozen=True)
+
+        logger = Logger(name=name, log_level=log_level)
+        ctx = ctx_cls(logger=logger, **d)
+        for k in sorted(args.__dict__.keys() - SKIP_ARGS):
+            s = encode_arg_value(args.__dict__[k])
+            ctx.log_info(f"{k} = {s}")
+
+        return ctx
+
+    def span(self, *args, **kwargs):
+        return self.logger.span(*args, **kwargs)

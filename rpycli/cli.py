@@ -1,9 +1,9 @@
-from argparse import BooleanOptionalAction
+from argparse import ArgumentTypeError, BooleanOptionalAction
 from dataclasses import MISSING
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
-from rpycli.context import DEFAULT_LOG_LEVEL_NAME, LOG_LEVEL_NAMES
+from rpycli.context import LogLevel
 import argparse
 import rpycli.invoke
 import sys
@@ -65,31 +65,34 @@ class ArgumentParser(argparse.ArgumentParser):
         if converters is not None:
             from_str, to_str = converters
         elif issubclass(type, StrEnum):
-            def from_str(s):
-                try:
-                    return type(s)
-                except ValueError:
-                    raise ArgumentTypeError(f"invalid value '{s}'")
+            from_str = type
             to_str = str
         elif issubclass(type, Enum):
             def from_str(s):
                 for member in type:
                     if str(member) == s:
                         return member
-                raise ArgumentTypeError(f"invalid value '{s}'")
+                raise ValueError(f"invalid value '{s}'")
             to_str = str
         else:
             raise NotImplementedError()
 
+        choices_str = ", ".join(to_str(m) for m in type)
+
+        def from_str_wrapped(s):
+            try:
+                return from_str(s)
+            except ValueError:
+                one_of = f"(choose one of: {choices_str})"
+                raise ArgumentTypeError(f"invalid choice '{s}' {one_of}")
+
         help = kwargs.get("help", MISSING)
         if help is not MISSING:
-            kwargs["help"] = \
-                f"{help} (one of: " \
-                f"{', '.join(to_str(m) for m in type)})"
+            kwargs["help"] = f"{help} (one of: {choices_str})"
 
         self.add_argument(
             *args,
-            type=from_str,
+            type=from_str_wrapped,
             choices=list(type),
             default=to_str(default),
             **kwargs)
@@ -137,18 +140,17 @@ class ArgumentParser(argparse.ArgumentParser):
 
 class CommonArgumentsMixin:
     def add_log_level_argument(self):
-        return self.add_argument(
+        self.add_enum_argument(
             "--log",
             "-l",
             dest="log_level",
-            type=str,
-            choices=LOG_LEVEL_NAMES,
-            required=False,
-            default=DEFAULT_LOG_LEVEL_NAME,
-            help=f"log level (one of: {', '.join(LOG_LEVEL_NAMES)})")
+            type=LogLevel,
+            default=LogLevel.INFO,
+            converters=(LogLevel.from_arg_str, lambda x: x.arg_str),
+            help="log level")
 
     def add_dry_run_argument(self):
-        return self.add_argument(
+        self.add_argument(
             "--dry-run",
             dest="dry_run",
             action=BooleanOptionalAction,
@@ -157,7 +159,7 @@ class CommonArgumentsMixin:
             help="dry run")
 
     def add_force_argument(self):
-        return self.add_argument(
+        self.add_argument(
             "--force",
             "-f",
             dest="force",
