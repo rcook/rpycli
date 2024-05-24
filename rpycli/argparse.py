@@ -95,16 +95,12 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs)
 
     def parse_args(self, args=None, namespace=None):
-        if args is not None and len(args) == 0:
-            self.print_usage()
-            sys.exit(2)
-
         namespace = super().parse_args(args=args, namespace=namespace)
 
         command = []
-        i = 0
+        i = 1
         while True:
-            k = f"_RPYCLI_command_{i}"
+            k = f"command{i}"
             c = getattr(namespace, k, None)
             if c is None:
                 break
@@ -127,11 +123,11 @@ class ArgumentParser(argparse.ArgumentParser):
             group_action = parent._subparsers._group_actions[0]
             depth = group_action._RPYCLI_depth + 1
         else:
-            depth = 0
+            depth = 1
 
         subparsers = self.add_subparsers(
             required=True,
-            dest=f"_RPYCLI_command_{depth}")
+            dest=f"command{depth}")
 
         assert not hasattr(subparsers, "_RPYCLI_depth")
         subparsers._RPYCLI_depth = depth
