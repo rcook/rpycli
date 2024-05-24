@@ -1,4 +1,5 @@
 from argparse import BooleanOptionalAction
+from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
 from rpycli.context import DEFAULT_LOG_LEVEL_NAME, LOG_LEVEL_NAMES
@@ -61,6 +62,39 @@ class ArgumentParser(argparse.ArgumentParser):
             kwargs["metavar"] = dest.upper()
 
         return super().add_argument(*args, **kwargs)
+
+    def add_enum_argument(self, *args, type, default, converters=None, **kwargs):
+        if converters is not None:
+            from_str, to_str = converters
+        elif issubclass(type, StrEnum):
+            def from_str(s):
+                try:
+                    return type(s)
+                except ValueError:
+                    raise ArgumentTypeError(f"invalid value '{s}'")
+            to_str = str
+        elif issubclass(type, Enum):
+            def from_str(s):
+                for member in type:
+                    if str(member) == s:
+                        return member
+                raise ArgumentTypeError(f"invalid value '{s}'")
+            to_str = str
+        else:
+            raise NotImplementedError()
+
+        help = kwargs.get("help", MISSING)
+        if help is not MISSING:
+            kwargs["help"] = \
+                f"{help} (one of: " \
+                f"{', '.join(to_str(m) for m in type)})"
+
+        self.add_argument(
+            *args,
+            type=from_str,
+            choices=list(type),
+            default=to_str(default),
+            **kwargs)
 
     def parse_args(self, args=None, namespace=None):
         if args is not None and len(args) == 0:
