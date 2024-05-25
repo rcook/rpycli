@@ -3,10 +3,22 @@ from dataclasses import MISSING
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
-from rpycli.context import LogLevel
 import argparse
 import rpycli.invoke
 import sys
+
+
+class ArgEnum(Enum):
+    @classmethod
+    def from_arg(cls, s):
+        for member in cls:
+            if member.arg_str == s:
+                return member
+        raise ValueError(f"invalid value '{s}'")
+
+    @property
+    def arg(self):
+        return self.name.lower()
 
 
 def path(cwd, s):
@@ -64,6 +76,10 @@ class ArgumentParser(argparse.ArgumentParser):
     def add_enum_argument(self, *args, type, default, converters=None, **kwargs):
         if converters is not None:
             from_str, to_str = converters
+            to_str = to_str.fget if isinstance(to_str, property) else to_str
+        elif issubclass(type, ArgEnum):
+            from_str = type.from_arg
+            to_str = type.arg.fget
         elif issubclass(type, StrEnum):
             from_str = type
             to_str = str
@@ -140,13 +156,13 @@ class ArgumentParser(argparse.ArgumentParser):
 
 class CommonArgumentsMixin:
     def add_log_level_argument(self):
+        from rpycli.context import LogLevel
         self.add_enum_argument(
             "--log",
             "-l",
             dest="log_level",
             type=LogLevel,
             default=LogLevel.INFO,
-            converters=(LogLevel.from_arg_str, lambda x: x.arg_str),
             help="log level")
 
     def add_dry_run_argument(self):

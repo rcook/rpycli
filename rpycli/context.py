@@ -2,8 +2,9 @@ from colorama import Fore, Style
 from contextlib import contextmanager
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
-from enum import Enum, unique
+from enum import unique
 from functools import cache, partialmethod
+from rpycli.cli import ArgEnum
 from time import perf_counter
 import contextlib
 import inspect
@@ -15,23 +16,12 @@ SKIP_ARGS = ["command", "func"]
 
 
 @unique
-class LogLevel(Enum):
+class LogLevel(ArgEnum):
     DEBUG = logging.DEBUG
     INFO = logging.INFO
     WARNING = logging.WARNING
     ERROR = logging.ERROR
     FATAL = logging.FATAL
-
-    @classmethod
-    def from_arg_str(cls, s):
-        for member in cls:
-            if member.arg_str == s:
-                return member
-        raise ValueError(f"invalid value '{s}'")
-
-    @property
-    def arg_str(self):
-        return self.name.lower()
 
 
 class LoggerMeta(type):
