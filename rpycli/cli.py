@@ -12,7 +12,7 @@ class ArgEnum(Enum):
     @classmethod
     def from_arg(cls, s):
         for member in cls:
-            if member.arg_str == s:
+            if member.arg == s:
                 return member
         raise ValueError(f"invalid value '{s}'")
 
