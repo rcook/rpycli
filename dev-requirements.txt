@@ -1,0 +1,3 @@
+mypy
+types-colorama
+types-pywin32
