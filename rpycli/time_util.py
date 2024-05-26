@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 
-def parse_duration(s):
+def parse_duration(s: str) -> timedelta | None:
     if s == "N/A":
         return None
 
@@ -12,3 +12,4 @@ def parse_duration(s):
             return timedelta(minutes=minutes, seconds=seconds)
         case (seconds,):
             return timedelta(seconds=seconds)
+        case _: raise ValueError(f"Invalid duration string {s}")
