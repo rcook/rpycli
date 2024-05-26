@@ -4,6 +4,7 @@
 
 ```bash
 python -m pip install -r dev-requirements.txt
+mypy --install-types --non-interactive
 mypy rpycli
 ```
 
