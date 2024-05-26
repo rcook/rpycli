@@ -1,15 +1,27 @@
 from colorama import just_fix_windows_console
 from pathlib import Path
 from platform import system
+from typing import Protocol, TypeVar
 import sys
 
 
-def init_rpycli():
+def init_rpycli() -> None:
     just_fix_windows_console()
 
 
-def call_main(func, init=True):
-    def munge(argv):
+T = TypeVar("T", covariant=True)
+
+
+class MainCallable(Protocol[T]):
+    def __call__(
+            self,
+            cwd: Path,
+            argv: list[str]) -> T:
+        raise NotImplementedError()
+
+
+def call_main(func: MainCallable[T], init: bool = True) -> T:
+    def munge(argv: list[str]) -> list[str]:
         if system() != "Windows":
             return argv
 
@@ -34,4 +46,4 @@ def call_main(func, init=True):
     if init:
         init_rpycli()
 
-    func(cwd=Path.cwd(), argv=munge(sys.argv[1:]))
+    return func(cwd=Path.cwd(), argv=munge(sys.argv[1:]))
