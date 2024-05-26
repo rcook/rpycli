@@ -1,33 +1,50 @@
-from argparse import ArgumentTypeError, BooleanOptionalAction
-from dataclasses import MISSING
+from argparse import Action, ArgumentTypeError, BooleanOptionalAction, Namespace
+from dataclasses import MISSING, _MISSING_TYPE
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
+from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar
 import argparse
 import rpycli.invoke
 import sys
 
 
+class ArgumentParserProtocol(Protocol):
+    def add_enum_argument(self, *args: Any, type, default, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+        raise NotImplementedError()
+
+    def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+        raise NotImplementedError()
+
+
 class ArgEnum(Enum):
     @classmethod
-    def from_arg(cls, s):
+    def from_arg(cls, s: str):
         for member in cls:
             if member.arg == s:
                 return member
         raise ValueError(f"invalid value '{s}'")
 
     @property
-    def arg(self):
+    def arg(self) -> str:
         return self.name.lower()
 
 
-def path(cwd, s):
+def path(cwd: Path, s: str) -> Path:
     return Path(cwd, Path(s).expanduser()).resolve()
+
+
+T = TypeVar("T", covariant=True)
+
+
+class CommandCallable(Protocol[T]):
+    def __call__(self, *args: Any, **kwargs: Any) -> T:
+        raise NotImplementedError()
 
 
 class ArgumentParser(argparse.ArgumentParser):
     @staticmethod
-    def invoke_func(args, **kwargs):
+    def invoke_func(args: Namespace, **kwargs: Any):
         d = args.__dict__.copy()
         func = d.pop("func")
         result = rpycli.invoke.invoke_func(func=func, **d, **kwargs)
@@ -38,12 +55,12 @@ class ArgumentParser(argparse.ArgumentParser):
             case int() as exit_code if exit_code != 0: sys.exit(exit_code)
             case _: raise NotImplementedError(f"Unsupported result {result}")
 
-    def add_command(self, *args, func, **kwargs):
+    def add_command(self, *args: Any, func: CommandCallable, **kwargs: Any) -> Self:
         parser = self.add_command_group(*args, **kwargs)
         parser.set_defaults(func=func)
         return parser
 
-    def add_command_group(self, *args, **kwargs):
+    def add_command_group(self, *args: Any, **kwargs: Any) -> Self:
         help = kwargs.get("help", MISSING)
         if help is not MISSING and len(help) > 0 and "description" not in kwargs:
             kwargs["description"] = help[0].upper() + help[1:]
@@ -54,7 +71,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return parser
 
-    def add_argument(self, *args, redact=MISSING, **kwargs):
+    def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         help = kwargs.get("help", MISSING)
         if help is not MISSING:
             default = kwargs.get("default", MISSING)
@@ -73,8 +90,8 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return super().add_argument(*args, **kwargs)
 
-    def add_enum_argument(self, *args, type, default, converters=None, **kwargs):
-        if converters is not None:
+    def add_enum_argument(self, *args: Any, type, default, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+        if converters is not MISSING:
             from_str, to_str = converters
             to_str = to_str.fget if isinstance(to_str, property) else to_str
         elif issubclass(type, ArgEnum):
@@ -95,7 +112,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         choices_str = ", ".join(to_str(m) for m in type)
 
-        def from_str_wrapped(s):
+        def from_str_wrapped(s: str):
             try:
                 return from_str(s)
             except ValueError:
@@ -106,14 +123,14 @@ class ArgumentParser(argparse.ArgumentParser):
         if help is not MISSING:
             kwargs["help"] = f"{help} (one of: {choices_str})"
 
-        self.add_argument(
+        return self.add_argument(
             *args,
             type=from_str_wrapped,
             choices=list(type),
             default=to_str(default),
             **kwargs)
 
-    def parse_args(self, args=None, namespace=None):
+    def parse_args(self, args: Sequence[str] | None = None, namespace=None):
         namespace = super().parse_args(args=args, namespace=namespace)
 
         command = []
@@ -131,7 +148,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return namespace
 
-    def run(self, argv, **kwargs):
+    def run(self, argv: Sequence[str] | None, **kwargs: Any):
         args = self.parse_args(argv)
         self.__class__.invoke_func(args, **kwargs)
 
@@ -154,10 +171,10 @@ class ArgumentParser(argparse.ArgumentParser):
         return subparsers
 
 
-class CommonArgumentsMixin:
-    def add_log_level_argument(self):
+class CommonArgumentsMixin(ArgumentParserProtocol):
+    def add_log_level_argument(self) -> Action:
         from rpycli.context import LogLevel
-        self.add_enum_argument(
+        return self.add_enum_argument(
             "--log",
             "-l",
             dest="log_level",
@@ -165,8 +182,8 @@ class CommonArgumentsMixin:
             default=LogLevel.INFO,
             help="log level")
 
-    def add_dry_run_argument(self):
-        self.add_argument(
+    def add_dry_run_argument(self) -> Action:
+        return self.add_argument(
             "--dry-run",
             dest="dry_run",
             action=BooleanOptionalAction,
@@ -174,8 +191,8 @@ class CommonArgumentsMixin:
             default=True,
             help="dry run")
 
-    def add_force_argument(self):
-        self.add_argument(
+    def add_force_argument(self) -> Action:
+        return self.add_argument(
             "--force",
             "-f",
             dest="force",
