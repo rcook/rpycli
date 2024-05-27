@@ -4,9 +4,11 @@ from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from functools import cache, partialmethod
+from inspect import FrameInfo
 from rpycli.logging import LogLevel, LoggerProtocol
 from time import perf_counter
-from typing import Any, Generator
+from types import ModuleType
+from typing import Any, Generator, Tuple
 import contextlib
 import inspect
 import logging
@@ -17,11 +19,12 @@ SKIP_ARGS: list[str] = ["command", "func"]
 
 
 class LoggerMeta(type):
-    def __new__(cls, name, bases, dct):
-        def get_calling_module(records):
+    def __new__(cls, name: str, bases: Tuple[type, ...], namespace: dict[str, Any]) -> "LoggerMeta":
+        def get_calling_module(records: list[FrameInfo]) -> ModuleType:
             for record in records:
                 frame = record[0]
                 module = inspect.getmodule(frame)
+                assert module is not None
                 if module != this_module and module != contextlib:
                     return module
             raise RuntimeError()
@@ -36,7 +39,7 @@ class LoggerMeta(type):
             method(*args, **kwargs)
 
         this_module = sys.modules[__name__]
-        t = super().__new__(cls, name, bases, dct)
+        t = super().__new__(cls, name, bases, namespace)
         for l in LogLevel:
             name = l.name.lower()
             setattr(t, name, partialmethod(log, name))
@@ -90,12 +93,12 @@ class Logger(metaclass=LoggerMeta):
 
 
 class ContextMeta(type):
-    def __new__(cls, name, bases, dct):
-        def log(self, log_level, *args, **kwargs):
+    def __new__(cls, name: str, bases: Tuple[type, ...], namespace: dict[str, Any]) -> "ContextMeta":
+        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
             method = getattr(self.logger, log_level)
-            return method(*args, **kwargs)
+            method(*args, **kwargs)
 
-        t = super().__new__(cls, name, bases, dct)
+        t = super().__new__(cls, name, bases, namespace)
         for l in LogLevel:
             name = l.name.lower()
             setattr(t, f"log_{name}", partialmethod(log, name))
@@ -107,8 +110,8 @@ class Context(metaclass=ContextMeta):
     logger: LoggerProtocol
 
     @classmethod
-    def from_args(cls, args: Namespace, name: str | None = None):
-        def encode_arg_value(obj):
+    def from_args(cls, args: Namespace, name: str | None = None) -> "Context":
+        def encode_arg_value(obj: Any) -> str:
             match obj:
                 case list() as items:
                     return f"[{', '.join(encode_arg_value(item) for item in items)}]"
