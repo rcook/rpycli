@@ -20,7 +20,7 @@ class ArgumentParserProtocol(Protocol):
 
 class ArgEnum(Enum):
     @classmethod
-    def from_arg(cls, s: str):
+    def from_arg(cls, s: str) -> Self:
         for member in cls:
             if member.arg == s:
                 return member
@@ -45,7 +45,7 @@ class CommandCallable(Protocol[T]):
 
 class ArgumentParser(argparse.ArgumentParser):
     @staticmethod
-    def invoke_func(args: Namespace, **kwargs: Any):
+    def invoke_func(args: Namespace, **kwargs: Any) -> None:
         d = args.__dict__.copy()
         func = d.pop("func")
         result = rpycli.invoke.invoke_func(func=func, **d, **kwargs)
