@@ -1,18 +1,19 @@
+from argparse import Namespace
 from colorama import Fore, Style
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
-from enum import unique
 from functools import cache, partialmethod
-from rpycli.cli import ArgEnum
+from rpycli.logging import LogLevel, LoggerProtocol
 from time import perf_counter
+from typing import Any, Generator
 import contextlib
 import inspect
 import logging
 import sys
 
 
-SKIP_ARGS = ["command", "func"]
+SKIP_ARGS: list[str] = ["command", "func"]
 
 
 class LoggerMeta(type):
@@ -25,14 +26,14 @@ class LoggerMeta(type):
                     return module
             raise RuntimeError()
 
-        def log(self, log_level, *args, **kwargs):
+        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
             module = get_calling_module(inspect.stack())
             logger = self.__class__._get_logger(
                 context_name=self.name,
                 log_level=self.log_level,
                 name=module.__name__)
             method = getattr(logger, log_level)
-            return method(*args, **kwargs)
+            method(*args, **kwargs)
 
         this_module = sys.modules[__name__]
         t = super().__new__(cls, name, bases, dct)
@@ -48,7 +49,7 @@ class Logger(metaclass=LoggerMeta):
     log_level: int
 
     @contextmanager
-    def span(self, name):
+    def span(self, name: list | str | None) -> Generator:
         match name:
             case list() | tuple() as names: name = "/".join(str(x) for x in names)
             case _: name = str(name)
@@ -59,7 +60,7 @@ class Logger(metaclass=LoggerMeta):
             method(f"[{name}] {disposition} after {duration}")
 
         start_time = perf_counter()
-        self.info(f"[{name}] started")
+        self.info(f"[{name}] started")  # type: ignore
         try:
             yield
             report_end(log_level="info", disposition="completed")
@@ -69,7 +70,7 @@ class Logger(metaclass=LoggerMeta):
 
     @cache
     @staticmethod
-    def _get_logger(context_name, log_level, name):
+    def _get_logger(context_name: str | None, log_level: int, name: str) -> logging.Logger:
         name = context_name \
             if name == "__main__" and context_name is not None \
             else name
@@ -103,10 +104,10 @@ class ContextMeta(type):
 
 @dataclass(frozen=True)
 class Context(metaclass=ContextMeta):
-    logger: Logger
+    logger: LoggerProtocol
 
     @classmethod
-    def from_args(cls, args, name=None):
+    def from_args(cls, args: Namespace, name: str | None = None):
         def encode_arg_value(obj):
             match obj:
                 case list() as items:
@@ -132,5 +133,5 @@ class Context(metaclass=ContextMeta):
 
         return ctx
 
-    def span(self, *args, **kwargs):
+    def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager:
         return self.logger.span(*args, **kwargs)
