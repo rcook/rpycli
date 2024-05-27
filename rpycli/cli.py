@@ -3,7 +3,8 @@ from dataclasses import MISSING, _MISSING_TYPE
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
-from rpycli.logging import LogLevel
+from rpycli.arg_enum import ArgEnum
+from rpycli.log_level import LogLevel
 from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar
 import argparse
 import rpycli.invoke
@@ -16,19 +17,6 @@ class ArgumentParserProtocol(Protocol):
 
     def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         raise NotImplementedError()
-
-
-class ArgEnum(Enum):
-    @classmethod
-    def from_arg(cls, s: str) -> Self:
-        for member in cls:
-            if member.arg == s:
-                return member
-        raise ValueError(f"invalid value '{s}'")
-
-    @property
-    def arg(self) -> str:
-        return self.name.lower()
 
 
 def path(cwd: Path, s: str) -> Path:

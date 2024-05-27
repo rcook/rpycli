@@ -1,16 +1,4 @@
-from enum import unique
-from rpycli.cli import ArgEnum
 from typing import Any, ContextManager, Protocol
-import logging
-
-
-@unique
-class LogLevel(ArgEnum):
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
-    ERROR = logging.ERROR
-    FATAL = logging.FATAL
 
 
 class LoggerProtocol(Protocol):
