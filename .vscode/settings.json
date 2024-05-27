@@ -1,6 +1,7 @@
 {
   "files.eol": "\n",
   "files.exclude": {
+    "**/.mypy_cache/": true,
     "**/.vscode/": true,
     "**/__pycache__/": true,
     "**/*.egg-info/": true,
