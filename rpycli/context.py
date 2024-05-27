@@ -15,15 +15,6 @@ import sys
 SKIP_ARGS = ["command", "func"]
 
 
-@unique
-class LogLevel(ArgEnum):
-    DEBUG = logging.DEBUG
-    INFO = logging.INFO
-    WARNING = logging.WARNING
-    ERROR = logging.ERROR
-    FATAL = logging.FATAL
-
-
 class LoggerMeta(type):
     def __new__(cls, name, bases, dct):
         def get_calling_module(records):

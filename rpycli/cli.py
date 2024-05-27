@@ -3,6 +3,7 @@ from dataclasses import MISSING, _MISSING_TYPE
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
+from rpycli.logging import LogLevel
 from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar
 import argparse
 import rpycli.invoke
@@ -173,7 +174,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
 class CommonArgumentsMixin(ArgumentParserProtocol):
     def add_log_level_argument(self) -> Action:
-        from rpycli.context import LogLevel
         return self.add_enum_argument(
             "--log",
             "-l",
