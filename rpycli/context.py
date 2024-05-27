@@ -5,7 +5,8 @@ from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from functools import cache, partialmethod
 from inspect import FrameInfo
-from rpycli.logging import LogLevel, LoggerProtocol
+from rpycli.log_level import LogLevel
+from rpycli.logging import LoggerProtocol
 from time import perf_counter
 from types import ModuleType
 from typing import Any, Generator, Tuple
