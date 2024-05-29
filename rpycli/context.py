@@ -78,10 +78,10 @@ class Logger(metaclass=LoggerMeta):
         name = context_name \
             if name == "__main__" and context_name is not None \
             else name
-        formatter = logging.Formatter(
+        formatter = ColouredLevelFormatter(
             Fore.LIGHTMAGENTA_EX + "[%(asctime)s] " +
             Fore.LIGHTYELLOW_EX + "[%(name)s] " +
-            Fore.LIGHTCYAN_EX + "[%(levelname)s] " +
+            "%(level_colour)s[%(levelname)s] " +
             Fore.LIGHTGREEN_EX + "%(message)s" +
             Style.RESET_ALL)
         handler = logging.StreamHandler()
@@ -139,3 +139,16 @@ class Context(metaclass=ContextMeta):
 
     def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager:
         return self.logger.span(*args, **kwargs)
+
+
+class ColouredLevelFormatter(logging.Formatter):
+    def format(self, record):
+        match record.levelno:
+            case logging.DEBUG: level_colour = Fore.LIGHTMAGENTA_EX
+            case logging.INFO: level_colour = Fore.LIGHTWHITE_EX
+            case logging.WARNING: level_colour = Fore.LIGHTYELLOW_EX
+            case logging.ERROR: level_colour = Fore.RED
+            case logging.FATAL: level_colour = Fore.LIGHTRED_EX
+            case _: raise NotImplementedError()
+        record.level_colour = level_colour
+        return super().format(record)
