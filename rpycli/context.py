@@ -9,7 +9,7 @@ from rpycli.log_level import LogLevel
 from rpycli.logging import LoggerProtocol
 from time import perf_counter
 from types import ModuleType
-from typing import Any, Generator, Tuple
+from typing import Any, Generator, Optional, Tuple, TypeVar
 import contextlib
 import inspect
 import logging
@@ -19,8 +19,11 @@ import sys
 SKIP_ARGS: list[str] = ["command", "func"]
 
 
+_T0 = TypeVar("_T0", bound="LoggerMeta")
+
+
 class LoggerMeta(type):
-    def __new__(cls, name: str, bases: Tuple[type, ...], namespace: dict[str, Any]) -> "LoggerMeta":
+    def __new__(cls: type[_T0], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T0:
         def get_calling_module(records: list[FrameInfo]) -> ModuleType:
             for record in records:
                 frame = record[0]
@@ -49,11 +52,11 @@ class LoggerMeta(type):
 
 @dataclass(frozen=True)
 class Logger(metaclass=LoggerMeta):
-    name: str | None
+    name: Optional[str]
     log_level: int
 
     @contextmanager
-    def span(self, name: list | str | None) -> Generator:
+    def span(self, name: Optional[list | str]) -> Generator[None, None, None]:
         match name:
             case list() | tuple() as names: name = "/".join(str(x) for x in names)
             case _: name = str(name)
@@ -74,7 +77,7 @@ class Logger(metaclass=LoggerMeta):
 
     @cache
     @staticmethod
-    def _get_logger(context_name: str | None, log_level: int, name: str) -> logging.Logger:
+    def _get_logger(context_name: Optional[str], log_level: int, name: str) -> logging.Logger:
         name = context_name \
             if name == "__main__" and context_name is not None \
             else name
@@ -93,8 +96,11 @@ class Logger(metaclass=LoggerMeta):
         return logger
 
 
+_T1 = TypeVar("_T1", bound="ContextMeta")
+
+
 class ContextMeta(type):
-    def __new__(cls, name: str, bases: Tuple[type, ...], namespace: dict[str, Any]) -> "ContextMeta":
+    def __new__(cls: type[_T1], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T1:
         def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
             method = getattr(self.logger, log_level)
             method(*args, **kwargs)
@@ -106,12 +112,15 @@ class ContextMeta(type):
         return t
 
 
+_T3 = TypeVar("_T3", bound="Context")
+
+
 @dataclass(frozen=True)
 class Context(metaclass=ContextMeta):
     logger: LoggerProtocol
 
     @classmethod
-    def from_args(cls, args: Namespace, name: str | None = None) -> "Context":
+    def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None) -> _T3:
         def encode_arg_value(obj: Any) -> str:
             match obj:
                 case list() as items:
@@ -124,7 +133,7 @@ class Context(metaclass=ContextMeta):
             del d[k]
 
         ctx_cls = make_dataclass(
-            cls_name="Context",
+            cls_name=f"{cls.__name__}_WRAPPED",
             fields=[(k, type(v)) for k, v in d.items()],
             bases=(cls,),
             frozen=True)
@@ -142,7 +151,7 @@ class Context(metaclass=ContextMeta):
 
 
 class ColouredLevelFormatter(logging.Formatter):
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         match record.levelno:
             case logging.DEBUG: level_colour = Fore.LIGHTMAGENTA_EX
             case logging.INFO: level_colour = Fore.LIGHTWHITE_EX
