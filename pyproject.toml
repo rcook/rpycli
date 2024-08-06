@@ -4,4 +4,4 @@ dependencies = [
   "pywin32 ; platform_system == \"Windows\"",
 ]
 name = "rpycli"
-version = ""
+version = "0.0.1"
