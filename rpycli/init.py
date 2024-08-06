@@ -1,6 +1,9 @@
-from colorama import just_fix_windows_console
+from colorama import Fore, just_fix_windows_console
 from pathlib import Path
 from platform import system
+from rpycli.cprint import cprint
+from rpycli.error import ReportableError, UserCancelledError
+from types import TracebackType
 from typing import Protocol, TypeVar
 import sys
 
@@ -47,3 +50,22 @@ def call_main(func: MainCallable[T], init: bool = True) -> T:
         init_rpycli()
 
     return func(cwd=Path.cwd(), argv=munge(sys.argv[1:]))
+
+
+def cli_exception_hook(exctype: type[BaseException], value: BaseException, traceback: TracebackType | None) -> None:
+    match value:
+        case ReportableError() as e:
+            m = str(e)
+            m = f"(Unknown error with exit code {e.exit_code})" \
+                if len(m) == 0 \
+                else m
+            cprint(Fore.LIGHTRED_EX, m, file=sys.stderr)
+            sys.exit(e.exit_code)
+        case KeyboardInterrupt() | UserCancelledError() as e:
+            m = str(e)
+            m = "Operation cancelled by user" \
+                if len(m) == 0 \
+                else f"Operation cancelled by user: {m}"
+            cprint(Fore.LIGHTBLUE_EX, m)
+            sys.exit(0)
+        case _: sys.__excepthook__(exctype, value, traceback)
