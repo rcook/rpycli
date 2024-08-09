@@ -120,14 +120,17 @@ class Context(metaclass=ContextMeta):
     logger: LoggerProtocol
 
     @classmethod
-    def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None) -> _T3:
+    def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None, **kwargs: Any) -> _T3:
         def encode_arg_value(obj: Any) -> str:
             match obj:
                 case list() as items:
                     return f"[{', '.join(encode_arg_value(item) for item in items)}]"
                 case _: return str(obj)
 
-        d = args.__dict__.copy()
+        d: dict[str, Any] = {}
+        d.update(args.__dict__)
+        d.update(kwargs)
+
         log_level = d.pop("log_level").value
         for k in SKIP_ARGS:
             del d[k]
