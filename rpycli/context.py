@@ -133,7 +133,10 @@ class Context(metaclass=ContextMeta):
 
         log_level = d.pop("log_level").value
         for k in SKIP_ARGS:
-            del d[k]
+            try:
+                del d[k]
+            except KeyError:
+                pass
 
         ctx_cls = make_dataclass(
             cls_name=f"{cls.__name__}_WRAPPED",
