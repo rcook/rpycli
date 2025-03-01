@@ -1,11 +1,14 @@
 # rpycli&mdash;Richard's Python Library for CLI Apps
 
-## Type checking
+## Perform type checking and run unit tests
 
 ```bash
-python -m pip install -r dev-requirements.txt
-mypy --install-types --non-interactive rpycli
-mypy rpycli
+python -m pip install --upgrade pip
+python -m pip install .[dev]
+mypy --install-types --non-interactive
+mypy
+pyright
+pytest
 ```
 
 ## Licence

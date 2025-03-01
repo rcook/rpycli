@@ -5,3 +5,16 @@ dependencies = [
 ]
 name = "rpycli"
 version = "0.0.3"
+
+[project.optional-dependencies]
+dev = [
+  "mypy",
+  "pyright",
+  "pytest",
+]
+
+[tool.mypy]
+packages = [
+  "rpycli",
+]
+strict = false
