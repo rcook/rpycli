@@ -30,3 +30,4 @@ def test_context_from_args() -> None:
     args = Namespace()
     args.log_level = LogLevel.DEBUG
     ctx = Context.from_args(args, "context")
+    assert ctx.log_level == DEBUG
