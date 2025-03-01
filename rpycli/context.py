@@ -14,20 +14,41 @@ class ContextBaseProtocol(Protocol):
         raise NotImplementedError()
 
 
+class ContextProtocol(Protocol):
+    def log_debug(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    def log_info(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    def log_warning(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    def log_error(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    def log_fatal(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    @contextmanager
+    def log_span(self: ContextBaseProtocol, *name: str) -> Generator[None, None, None]:
+        raise NotImplementedError()
+
+
 class ContextMixin:
-    def log_debug(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+    def log_debug(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.logger.debug(*args, **kwargs)
 
-    def log_info(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+    def log_info(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.logger.info(*args, **kwargs)
 
-    def log_warning(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+    def log_warning(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.logger.warning(*args, **kwargs)
 
-    def log_error(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+    def log_error(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.logger.error(*args, **kwargs)
 
-    def log_fatal(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+    def log_fatal(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.logger.fatal(*args, **kwargs)
 
     @contextmanager
