@@ -96,7 +96,7 @@ class Logger(LoggerMixin):
         module = self.__class__._get_calling_module(inspect.stack())
         logger = self.__class__._get_logger(
             context_name=self.name,
-            log_level=0,  # self.log_level,
+            log_level=self.level,
             name=module.__name__)
         method = getattr(logger, level_name)
         method(*args, **kwargs)

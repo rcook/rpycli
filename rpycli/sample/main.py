@@ -4,7 +4,7 @@ from rpycli.sample.foo import Foo
 
 
 def main() -> None:
-    logger = Logger("sample-logger", DEBUG)
+    logger = Logger("logger", DEBUG)
     logger.info("info")
 
     with logger.span():
