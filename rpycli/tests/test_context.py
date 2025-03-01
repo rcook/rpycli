@@ -1,12 +1,11 @@
 from logging import DEBUG
 from rpycli.context import Context, Logger
-from rpycli.logging import LoggerProtocol
-from typing import cast, no_type_check
+from typing import no_type_check
 
 
 def test_context() -> None:
     logger = Logger("test-logger", log_level=DEBUG)
-    ctx = Context(cast(LoggerProtocol, logger))
+    ctx = Context(logger)
     called = False
     with ctx.span("test-span") as span:
         called = True
