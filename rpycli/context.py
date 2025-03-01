@@ -1,10 +1,10 @@
 from argparse import Namespace
-from contextlib import AbstractContextManager
+from contextlib import contextmanager
 from dataclasses import dataclass, make_dataclass
 from functools import partialmethod
 from rpycli.log_level import LogLevel
 from rpycli.logger import Logger, LoggerProtocol
-from typing import Any, Optional, TypeVar
+from typing import Any, Generator, Optional, Protocol, TypeVar
 
 
 SKIP_ARGS: list[str] = ["command", "func"]
@@ -15,8 +15,8 @@ _T1 = TypeVar("_T1", bound="ContextMeta")
 
 class ContextMeta(type):
     def __new__(cls: type[_T1], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T1:
-        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
-            method = getattr(self.logger, log_level)
+        def log(self, log_level_name: str, *args: Any, **kwargs: Any) -> None:
+            method = getattr(self.logger, log_level_name)
             method(*args, **kwargs)
 
         t = super().__new__(cls, name, bases, namespace)
@@ -26,11 +26,39 @@ class ContextMeta(type):
         return t
 
 
+class ContextBaseProtocol(Protocol):
+    @property
+    def logger(self) -> LoggerProtocol:
+        raise NotImplementedError()
+
+
+class ContextMixin:
+    def log_debug(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+        self.logger.debug(*args, **kwargs)
+
+    def log_info(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+        self.logger.info(*args, **kwargs)
+
+    def log_warning(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+        self.logger.warning(*args, **kwargs)
+
+    def log_error(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+        self.logger.error(*args, **kwargs)
+
+    def log_fatal(self: ContextBaseProtocol, *args: Any, **kwargs: Any):
+        self.logger.fatal(*args, **kwargs)
+
+    @contextmanager
+    def log_span(self: ContextBaseProtocol, *name: str) -> Generator[None, None, None]:
+        with self.logger.span(*name) as span:
+            yield span
+
+
 _T3 = TypeVar("_T3", bound="Context")
 
 
 @dataclass(frozen=True)
-class Context(metaclass=ContextMeta):
+class Context(ContextMixin):
     logger: LoggerProtocol
 
     @classmethod
@@ -65,6 +93,3 @@ class Context(metaclass=ContextMeta):
             ctx.log_info(f"{k} = {s}")
 
         return ctx
-
-    def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager:
-        return self.logger.span(*args, **kwargs)

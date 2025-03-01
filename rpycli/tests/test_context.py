@@ -1,5 +1,6 @@
 from logging import DEBUG
-from rpycli.context import Context, Logger
+from rpycli.context import Context
+from rpycli.logger import Logger
 
 
 def test_context() -> None:
@@ -7,7 +8,10 @@ def test_context() -> None:
     ctx = Context(logger)
     called = False
 
-    with ctx.span("test-span") as span:
+    ctx.log_info("info")
+    ctx.log_warning("warning")
+
+    with ctx.log_span("test-span") as span:
         called = True
         assert span is None
 

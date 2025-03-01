@@ -50,19 +50,19 @@ class LoggerProtocol(Protocol):
 
 
 class LoggerMixin:
-    def debug(self: LoggerBaseProtocol, *args: Any, **kwargs: Any):
+    def debug(self: LoggerBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.log("debug", *args, **kwargs)
 
-    def info(self: LoggerBaseProtocol, *args: Any, **kwargs: Any):
+    def info(self: LoggerBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.log("info", *args, **kwargs)
 
-    def warning(self: LoggerBaseProtocol, *args: Any, **kwargs: Any):
+    def warning(self: LoggerBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.log("warning", *args, **kwargs)
 
-    def error(self: LoggerBaseProtocol, *args: Any, **kwargs: Any):
+    def error(self: LoggerBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.log("error", *args, **kwargs)
 
-    def fatal(self: LoggerBaseProtocol, *args: Any, **kwargs: Any):
+    def fatal(self: LoggerBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.log("fatal", *args, **kwargs)
 
     @contextmanager
