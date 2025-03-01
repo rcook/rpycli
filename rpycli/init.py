@@ -31,7 +31,7 @@ def call_main(func: MainCallable[T], init: bool = True) -> T:
         import win32api
         command_line = win32api.GetCommandLine()
 
-        new_argv = []
+        new_argv: list[str] = []
         for arg in argv:
             quote_index = arg.find("\"")
             if quote_index != -1:

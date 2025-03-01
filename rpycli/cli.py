@@ -1,11 +1,18 @@
-from argparse import Action, ArgumentTypeError, BooleanOptionalAction, Namespace, _SubParsersAction
-from dataclasses import MISSING, _MISSING_TYPE
+from argparse import \
+    Action, \
+    ArgumentTypeError, \
+    BooleanOptionalAction, \
+    Namespace, \
+    _SubParsersAction  # type: ignore[reportPrivateUsage]
+from dataclasses import \
+    MISSING, \
+    _MISSING_TYPE  # type: ignore[reportPrivateUsage]
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
 from rpycli.arg_enum import ArgEnum
 from rpycli.log_level import LogLevel
-from typing import Any, Optional, Protocol, Self, Sequence, Tuple, TypeVar, cast, overload
+from typing import Any, Optional, Protocol, Self, Sequence, Tuple, TypeVar, overload
 import argparse
 import rpycli.invoke
 import sys
@@ -84,6 +91,7 @@ class ArgumentParser(argparse.ArgumentParser):
         return super().add_argument(*args, **kwargs)
 
     def add_enum_argument(self, *args: Any, type: Any, default: Any, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+        from_str: Any
         if converters is not MISSING:
             from_str, to_str = converters
             to_str = to_str.fget if isinstance(to_str, property) else to_str
@@ -94,15 +102,17 @@ class ArgumentParser(argparse.ArgumentParser):
             from_str = type
             to_str = str
         elif issubclass(type, Enum):
-            def from_str(s: str) -> Any:
+            def temp(s: str) -> Any:
                 for member in type:
                     if str(member) == s:
                         return member
                 raise ValueError(f"invalid value '{s}'")
+            from_str = temp
             to_str = str
         else:
             raise NotImplementedError()
 
+        assert to_str is not None
         choices_str = ", ".join(to_str(m) for m in type)
 
         def from_str_wrapped(s: str) -> Any:
@@ -138,7 +148,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def parse_args(self, args: Optional[Sequence[str]] = None, namespace: Any = None) -> Any:
         namespace = super().parse_args(args=args, namespace=namespace)
 
-        command = []
+        command: list[Any] = []
         i = 1
         while True:
             k = f"command{i}"
