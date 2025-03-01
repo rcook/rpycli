@@ -12,7 +12,7 @@ import sys
 
 
 class ArgumentParserProtocol(Protocol):
-    def add_enum_argument(self, *args: Any, type, default, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+    def add_enum_argument(self, *args: Any, type: Any, default: Any, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         raise NotImplementedError()
 
     def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
@@ -160,8 +160,8 @@ class ArgumentParser(argparse.ArgumentParser):
         return subparsers
 
 
-class CommonArgumentsMixin(ArgumentParserProtocol):
-    def add_log_level_argument(self) -> Action:
+class CommonArgumentsMixin:
+    def add_log_level_argument(self: ArgumentParserProtocol) -> Action:
         return self.add_enum_argument(
             "--log",
             "-l",
@@ -170,7 +170,7 @@ class CommonArgumentsMixin(ArgumentParserProtocol):
             default=LogLevel.INFO,
             help="log level")
 
-    def add_dry_run_argument(self) -> Action:
+    def add_dry_run_argument(self: ArgumentParserProtocol) -> Action:
         return self.add_argument(
             "--dry-run",
             dest="dry_run",
@@ -179,7 +179,7 @@ class CommonArgumentsMixin(ArgumentParserProtocol):
             default=True,
             help="dry run")
 
-    def add_force_argument(self) -> Action:
+    def add_force_argument(self: ArgumentParserProtocol) -> Action:
         return self.add_argument(
             "--force",
             "-f",
