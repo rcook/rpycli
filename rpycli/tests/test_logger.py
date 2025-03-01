@@ -7,19 +7,17 @@ from typing import Any
 def test_logger_mixin() -> None:
     @dataclass(frozen=False)
     class MyLogger(LoggerMixin):
+        level: int
         log_call_count: int = 0
 
-        @property
-        def log_level(self) -> int:
-            raise NotImplementedError()
-
-        def log(self, log_level_name: str, *args: Any, **kwargs: Any) -> None:
+        def log(self, level_name: str, *args: Any, **kwargs: Any) -> None:
             self.log_call_count += 1
 
     def check_protocol(logger: LoggerProtocol) -> None:
+        assert logger.level == 123
         logger.fatal("fatal")
 
-    logger = MyLogger()
+    logger = MyLogger(level=123)
     assert logger.log_call_count == 0
     logger.info("info")
     assert logger.log_call_count == 1

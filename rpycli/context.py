@@ -15,27 +15,35 @@ class ContextBaseProtocol(Protocol):
 
 
 class ContextProtocol(Protocol):
-    def log_debug(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+    @property
+    def log_level(self) -> int:
         raise NotImplementedError()
 
-    def log_info(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+    def log_debug(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def log_warning(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+    def log_info(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def log_error(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+    def log_warning(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def log_fatal(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
+    def log_error(self, *args: Any, **kwargs: Any) -> None:
+        raise NotImplementedError()
+
+    def log_fatal(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
     @contextmanager
-    def log_span(self: ContextBaseProtocol, *name: str) -> Generator[None, None, None]:
+    def log_span(self, *name: str) -> Generator[None, None, None]:
         raise NotImplementedError()
 
 
 class ContextMixin:
+    @property
+    def log_level(self: ContextBaseProtocol) -> int:
+        return self.logger.level
+
     def log_debug(self: ContextBaseProtocol, *args: Any, **kwargs: Any) -> None:
         self.logger.debug(*args, **kwargs)
 
@@ -89,7 +97,7 @@ class Context(ContextMixin):
             bases=(cls,),
             frozen=True)
 
-        logger = Logger(name=name, log_level=log_level)
+        logger = Logger(name=name, level=log_level)
         ctx = ctx_cls(logger=logger, **d)
         for k in sorted(args.__dict__.keys() - SKIP_ARGS):
             s = encode_arg_value(args.__dict__[k])

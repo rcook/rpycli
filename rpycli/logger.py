@@ -20,15 +20,15 @@ SKIP_ARGS: list[str] = ["command", "func"]
 
 
 class LoggerBaseProtocol(Protocol):
-    @property
-    def log_level(self) -> int:
-        raise NotImplementedError()
-
-    def log(self, log_level_name: str, *args: Any, **kwargs: Any) -> None:
+    def log(self, level_name: str, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
 
 class LoggerProtocol(Protocol):
+    @property
+    def level(self) -> int:
+        raise NotImplementedError()
+
     def debug(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
@@ -72,33 +72,33 @@ class LoggerMixin:
         else:
             label = "[" + "/".join(name) + "]"
 
-        def report_end(log_level_name: str, disposition: str) -> None:
+        def report_end(level_name: str, disposition: str) -> None:
             duration = timedelta(seconds=perf_counter() - start_time)
-            method = getattr(self, log_level_name)
+            method = getattr(self, level_name)
             method(f"{label} {disposition} after {duration}")
 
         start_time = perf_counter()
         self.info(f"{label} started")  # type: ignore
         try:
             yield
-            report_end(log_level_name="info", disposition="completed")
+            report_end(level_name="info", disposition="completed")
         except:
-            report_end(log_level_name="error", disposition="failed")
+            report_end(level_name="error", disposition="failed")
             raise
 
 
 @dataclass(frozen=True)
 class Logger(LoggerMixin):
     name: Optional[str]
-    log_level: int
+    level: int
 
-    def log(self, log_level_name: str, *args: Any, **kwargs: Any) -> None:
+    def log(self, level_name: str, *args: Any, **kwargs: Any) -> None:
         module = self.__class__._get_calling_module(inspect.stack())
         logger = self.__class__._get_logger(
             context_name=self.name,
-            log_level=self.log_level,
+            log_level=0,  # self.log_level,
             name=module.__name__)
-        method = getattr(logger, log_level_name)
+        method = getattr(logger, level_name)
         method(*args, **kwargs)
 
     @staticmethod

@@ -7,9 +7,10 @@ from rpycli.logger import Logger
 
 def test_context() -> None:
     def check_protocol(ctx: ContextProtocol) -> None:
+        assert ctx.log_level == 123
         ctx.log_fatal("fatal")
 
-    logger = Logger("test-logger", log_level=DEBUG)
+    logger = Logger("test-logger", 123)
     ctx = Context(logger)
     called = False
 
