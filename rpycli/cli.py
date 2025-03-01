@@ -1,5 +1,12 @@
-from argparse import Action, ArgumentTypeError, BooleanOptionalAction, Namespace, _SubParsersAction
-from dataclasses import MISSING, _MISSING_TYPE
+from argparse import \
+    Action, \
+    ArgumentTypeError, \
+    BooleanOptionalAction, \
+    Namespace, \
+    _SubParsersAction  # type: ignore[reportPrivateUsage]
+from dataclasses import \
+    MISSING, \
+    _MISSING_TYPE  # type: ignore[reportPrivateUsage]
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
@@ -44,11 +51,13 @@ class ArgumentParser(argparse.ArgumentParser):
             case int() as exit_code if exit_code != 0: sys.exit(exit_code)
             case _: raise NotImplementedError(f"Unsupported result {result}")
 
+    @no_type_check
     def add_command(self, *args: Any, func: CommandCallable[T], **kwargs: Any) -> Self:
         parser = self.add_command_group(*args, **kwargs)
         parser.set_defaults(func=func)
         return parser
 
+    @no_type_check
     def add_command_group(self, *args: Any, **kwargs: Any) -> Self:
         help = kwargs.get("help", MISSING)
         if help is not MISSING and len(help) > 0 and "description" not in kwargs:
@@ -143,13 +152,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return namespace
 
+    @no_type_check
     def run(self, argv: Sequence[str] | None, **kwargs: Any) -> None:
         args = self.parse_args(argv)
         self.__class__.invoke_func(args, **kwargs)
 
     @cached_property
     @no_type_check
-    def _commands(self) -> _SubParsersAction:
+    def _commands(self) -> _SubParsersAction[T]:
         parent = getattr(self, "_RPYCLI_parent", None)
         if parent is not None:
             group_action = parent._subparsers._group_actions[0]

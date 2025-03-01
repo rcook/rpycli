@@ -1,6 +1,6 @@
 from argparse import Namespace
 from colorama import Fore, Style
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from functools import cache, partialmethod
@@ -9,7 +9,7 @@ from rpycli.log_level import LogLevel
 from rpycli.logging import LoggerProtocol
 from time import perf_counter
 from types import ModuleType
-from typing import Any, Generator, Optional, TypeVar, cast
+from typing import Any, Generator, Optional, TypeVar, no_type_check
 import contextlib
 import inspect
 import logging
@@ -24,6 +24,7 @@ _T0 = TypeVar("_T0", bound="LoggerMeta")
 
 class LoggerMeta(type):
     def __new__(cls: type[_T0], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T0:
+        @no_type_check
         def get_calling_module(records: list[FrameInfo]) -> ModuleType:
             for record in records:
                 frame = record[0]
@@ -56,11 +57,8 @@ class Logger(metaclass=LoggerMeta):
     log_level: int
 
     @contextmanager
-    def span(self, name: Optional[list[Any] | str]) -> Generator[None, None, None]:
-        match name:
-            case list() | tuple() as names: name = "/".join(str(x) for x in names)
-            case _: name = str(name)
-
+    @no_type_check
+    def span(self, name: str) -> Generator[None, None, None]:
         def report_end(log_level: str, disposition: str) -> None:
             duration = timedelta(seconds=perf_counter() - start_time)
             method = getattr(self, log_level)
@@ -120,7 +118,9 @@ class Context(metaclass=ContextMeta):
     logger: LoggerProtocol
 
     @classmethod
+    @no_type_check
     def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None, **kwargs: Any) -> _T3:
+        @no_type_check
         def encode_arg_value(obj: Any) -> str:
             match obj:
                 case list() as items:
@@ -150,10 +150,12 @@ class Context(metaclass=ContextMeta):
             s = encode_arg_value(args.__dict__[k])
             ctx.log_info(f"{k} = {s}")
 
-        return cast(_T3, ctx)
+        return ctx
 
-    def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager[None]:
-        return self.logger.span(*args, **kwargs)
+    @contextmanager
+    def span(self, name: str) -> Generator[None, None, None]:
+        with self.logger.span(name=name):
+            yield
 
 
 class ColouredLevelFormatter(logging.Formatter):
