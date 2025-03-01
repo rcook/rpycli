@@ -2,7 +2,7 @@ from argparse import Namespace
 from contextlib import contextmanager
 from dataclasses import dataclass, make_dataclass
 from rpycli.logger import Logger, LoggerProtocol
-from typing import Any, Generator, Optional, Protocol, TypeVar
+from typing import Any, Generator, Optional, Protocol, TypeVar, cast
 
 
 SKIP_ARGS: list[str] = ["command", "func"]
@@ -75,10 +75,10 @@ class Context(ContextMixin):
     @classmethod
     def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None, **kwargs: Any) -> _T3:
         def encode_arg_value(obj: Any) -> str:
-            match obj:
-                case list() as items:
-                    return f"[{', '.join(encode_arg_value(item) for item in items)}]"
-                case _: return str(obj)
+            if isinstance(obj, list):
+                return f"[{', '.join(encode_arg_value(item) for item in cast(list[Any], obj))}]"
+            else:
+                return str(obj)
 
         d: dict[str, Any] = {}
         d.update(args.__dict__)
@@ -93,7 +93,7 @@ class Context(ContextMixin):
 
         ctx_cls = make_dataclass(
             cls_name=f"{cls.__name__}_WRAPPED",
-            fields=[(k, type(v)) for k, v in d.items()],
+            fields=[(k, cast(object, type(v))) for k, v in d.items()],
             bases=(cls,),
             frozen=True)
 
