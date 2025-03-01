@@ -1,11 +1,11 @@
-from argparse import Action, ArgumentTypeError, BooleanOptionalAction, Namespace
+from argparse import Action, ArgumentTypeError, BooleanOptionalAction, Namespace, _SubParsersAction
 from dataclasses import MISSING, _MISSING_TYPE
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
 from rpycli.arg_enum import ArgEnum
 from rpycli.log_level import LogLevel
-from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar
+from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar, no_type_check, override
 import argparse
 import rpycli.invoke
 import sys
@@ -87,7 +87,7 @@ class ArgumentParser(argparse.ArgumentParser):
             from_str = type.from_arg
             to_str = type.arg.fget
         elif issubclass(type, StrEnum):
-            from_str = type
+            from_str = type  # type: ignore[reportAssignmentType]
             to_str = str
         elif issubclass(type, Enum):
             def from_str(s):
@@ -99,7 +99,11 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             raise NotImplementedError()
 
-        choices_str = ", ".join(to_str(m) for m in type)
+        assert from_str is not None and to_str is not None
+
+        choices_str = ", ".join(
+            to_str(m)  # type: ignore[reportCallIssue]
+            for m in type)
 
         def from_str_wrapped(s: str):
             try:
@@ -119,7 +123,9 @@ class ArgumentParser(argparse.ArgumentParser):
             default=to_str(default),
             **kwargs)
 
-    def parse_args(self, args: Sequence[str] | None = None, namespace=None):
+    @override
+    @no_type_check
+    def parse_args(self, args: Any = None, namespace: Any = None) -> Any:
         namespace = super().parse_args(args=args, namespace=namespace)
 
         command = []
@@ -142,7 +148,8 @@ class ArgumentParser(argparse.ArgumentParser):
         self.__class__.invoke_func(args, **kwargs)
 
     @cached_property
-    def _commands(self):
+    @no_type_check
+    def _commands(self) -> _SubParsersAction:
         parent = getattr(self, "_RPYCLI_parent", None)
         if parent is not None:
             group_action = parent._subparsers._group_actions[0]
