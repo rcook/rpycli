@@ -1,25 +1,18 @@
-from argparse import \
-    Action, \
-    ArgumentTypeError, \
-    BooleanOptionalAction, \
-    Namespace, \
-    _SubParsersAction  # type: ignore[reportPrivateUsage]
-from dataclasses import \
-    MISSING, \
-    _MISSING_TYPE  # type: ignore[reportPrivateUsage]
+from argparse import Action, ArgumentTypeError, BooleanOptionalAction, Namespace
+from dataclasses import MISSING, _MISSING_TYPE
 from enum import StrEnum, Enum
 from functools import cached_property
 from pathlib import Path
 from rpycli.arg_enum import ArgEnum
 from rpycli.log_level import LogLevel
-from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar, cast, no_type_check, override
+from typing import Any, Protocol, Self, Sequence, Tuple, TypeVar
 import argparse
 import rpycli.invoke
 import sys
 
 
 class ArgumentParserProtocol(Protocol):
-    def add_enum_argument(self, *args: Any, type: Any, default: Any, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+    def add_enum_argument(self, *args: Any, type, default, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         raise NotImplementedError()
 
     def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
@@ -51,13 +44,11 @@ class ArgumentParser(argparse.ArgumentParser):
             case int() as exit_code if exit_code != 0: sys.exit(exit_code)
             case _: raise NotImplementedError(f"Unsupported result {result}")
 
-    @no_type_check
-    def add_command(self, *args: Any, func: CommandCallable[T], **kwargs: Any) -> Self:
+    def add_command(self, *args: Any, func: CommandCallable, **kwargs: Any) -> Self:
         parser = self.add_command_group(*args, **kwargs)
         parser.set_defaults(func=func)
         return parser
 
-    @no_type_check
     def add_command_group(self, *args: Any, **kwargs: Any) -> Self:
         help = kwargs.get("help", MISSING)
         if help is not MISSING and len(help) > 0 and "description" not in kwargs:
@@ -67,7 +58,7 @@ class ArgumentParser(argparse.ArgumentParser):
         assert not hasattr(parser, "_RPYCLI_parent")
         parser._RPYCLI_parent = self
 
-        return cast(Self, parser)
+        return parser
 
     def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         help = kwargs.get("help", MISSING)
@@ -88,18 +79,18 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return super().add_argument(*args, **kwargs)
 
-    def add_enum_argument(self, *args: Any, type: Any, default: Any, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
+    def add_enum_argument(self, *args: Any, type, default, converters: Tuple[Any, Any] | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         if converters is not MISSING:
             from_str, to_str = converters
             to_str = to_str.fget if isinstance(to_str, property) else to_str
         elif issubclass(type, ArgEnum):
             from_str = type.from_arg
-            to_str = type.arg.fget  # type: ignore[attr-defined]
+            to_str = type.arg.fget
         elif issubclass(type, StrEnum):
-            from_str = type  # type: ignore[reportAssignmentType]
+            from_str = type
             to_str = str
         elif issubclass(type, Enum):
-            def from_str(s: str) -> Any:
+            def from_str(s):
                 for member in type:
                     if str(member) == s:
                         return member
@@ -108,13 +99,9 @@ class ArgumentParser(argparse.ArgumentParser):
         else:
             raise NotImplementedError()
 
-        assert from_str is not None and to_str is not None
+        choices_str = ", ".join(to_str(m) for m in type)
 
-        choices_str = ", ".join(
-            to_str(m)  # type: ignore[reportCallIssue]
-            for m in type)  # type: ignore[attr-defined]
-
-        def from_str_wrapped(s: str) -> Any:
+        def from_str_wrapped(s: str):
             try:
                 return from_str(s)
             except ValueError:
@@ -128,13 +115,11 @@ class ArgumentParser(argparse.ArgumentParser):
         return self.add_argument(
             *args,
             type=from_str_wrapped,
-            choices=list(type),  # type: ignore[call-overload]
+            choices=list(type),
             default=to_str(default),
             **kwargs)
 
-    @override
-    @no_type_check
-    def parse_args(self, args: Any = None, namespace: Any = None) -> Any:
+    def parse_args(self, args: Sequence[str] | None = None, namespace=None):
         namespace = super().parse_args(args=args, namespace=namespace)
 
         command = []
@@ -152,14 +137,12 @@ class ArgumentParser(argparse.ArgumentParser):
 
         return namespace
 
-    @no_type_check
-    def run(self, argv: Sequence[str] | None, **kwargs: Any) -> None:
+    def run(self, argv: Sequence[str] | None, **kwargs: Any):
         args = self.parse_args(argv)
         self.__class__.invoke_func(args, **kwargs)
 
     @cached_property
-    @no_type_check
-    def _commands(self) -> _SubParsersAction[T]:
+    def _commands(self):
         parent = getattr(self, "_RPYCLI_parent", None)
         if parent is not None:
             group_action = parent._subparsers._group_actions[0]

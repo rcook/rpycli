@@ -1,6 +1,6 @@
 from argparse import Namespace
 from colorama import Fore, Style
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass, make_dataclass
 from datetime import timedelta
 from functools import cache, partialmethod
@@ -9,7 +9,7 @@ from rpycli.log_level import LogLevel
 from rpycli.logging import LoggerProtocol
 from time import perf_counter
 from types import ModuleType
-from typing import Any, Generator, Optional, TypeVar, no_type_check
+from typing import Any, Generator, Optional, Tuple, TypeVar
 import contextlib
 import inspect
 import logging
@@ -24,7 +24,6 @@ _T0 = TypeVar("_T0", bound="LoggerMeta")
 
 class LoggerMeta(type):
     def __new__(cls: type[_T0], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T0:
-        @no_type_check
         def get_calling_module(records: list[FrameInfo]) -> ModuleType:
             for record in records:
                 frame = record[0]
@@ -34,7 +33,7 @@ class LoggerMeta(type):
                     return module
             raise RuntimeError()
 
-        def log(self: Any, log_level: str, *args: Any, **kwargs: Any) -> None:
+        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
             module = get_calling_module(inspect.stack())
             logger = self.__class__._get_logger(
                 context_name=self.name,
@@ -57,9 +56,12 @@ class Logger(metaclass=LoggerMeta):
     log_level: int
 
     @contextmanager
-    @no_type_check
-    def span(self, name: str) -> Generator[None, None, None]:
-        def report_end(log_level: str, disposition: str) -> None:
+    def span(self, name: Optional[list | str]) -> Generator[None, None, None]:
+        match name:
+            case list() | tuple() as names: name = "/".join(str(x) for x in names)
+            case _: name = str(name)
+
+        def report_end(log_level, disposition):
             duration = timedelta(seconds=perf_counter() - start_time)
             method = getattr(self, log_level)
             method(f"[{name}] {disposition} after {duration}")
@@ -99,7 +101,7 @@ _T1 = TypeVar("_T1", bound="ContextMeta")
 
 class ContextMeta(type):
     def __new__(cls: type[_T1], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T1:
-        def log(self: Any, log_level: str, *args: Any, **kwargs: Any) -> None:
+        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
             method = getattr(self.logger, log_level)
             method(*args, **kwargs)
 
@@ -118,9 +120,7 @@ class Context(metaclass=ContextMeta):
     logger: LoggerProtocol
 
     @classmethod
-    @no_type_check
     def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None, **kwargs: Any) -> _T3:
-        @no_type_check
         def encode_arg_value(obj: Any) -> str:
             match obj:
                 case list() as items:
@@ -152,10 +152,8 @@ class Context(metaclass=ContextMeta):
 
         return ctx
 
-    @contextmanager
-    def span(self, name: str) -> Generator[None, None, None]:
-        with self.logger.span(name=name):
-            yield
+    def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager:
+        return self.logger.span(*args, **kwargs)
 
 
 class ColouredLevelFormatter(logging.Formatter):

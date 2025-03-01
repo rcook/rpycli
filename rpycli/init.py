@@ -4,7 +4,7 @@ from platform import system
 from rpycli.cprint import cprint
 from rpycli.error import ReportableError, UserCancelledError
 from types import TracebackType
-from typing import Protocol, TypeVar, no_type_check
+from typing import Protocol, TypeVar
 import sys
 
 
@@ -24,7 +24,6 @@ class MainCallable(Protocol[T]):
 
 
 def call_main(func: MainCallable[T], init: bool = True) -> T:
-    @no_type_check
     def munge(argv: list[str]) -> list[str]:
         if system() != "Windows":
             return argv
