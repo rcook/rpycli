@@ -43,3 +43,11 @@ def test_logger_mixin() -> None:
 def test_logger() -> None:
     logger = Logger("logger", DEBUG)
     logger.info("info")
+
+    called = False
+
+    with logger.span("test-span") as span:
+        called = True
+        assert span is None
+
+    assert called
