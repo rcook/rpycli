@@ -9,7 +9,7 @@ from rpycli.log_level import LogLevel
 from rpycli.logging import LoggerProtocol
 from time import perf_counter
 from types import ModuleType
-from typing import Any, Generator, Optional, Tuple, TypeVar
+from typing import Any, Generator, Optional, TypeVar, cast
 import contextlib
 import inspect
 import logging
@@ -33,7 +33,7 @@ class LoggerMeta(type):
                     return module
             raise RuntimeError()
 
-        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
+        def log(self: Any, log_level: str, *args: Any, **kwargs: Any) -> None:
             module = get_calling_module(inspect.stack())
             logger = self.__class__._get_logger(
                 context_name=self.name,
@@ -56,12 +56,12 @@ class Logger(metaclass=LoggerMeta):
     log_level: int
 
     @contextmanager
-    def span(self, name: Optional[list | str]) -> Generator[None, None, None]:
+    def span(self, name: Optional[list[Any] | str]) -> Generator[None, None, None]:
         match name:
             case list() | tuple() as names: name = "/".join(str(x) for x in names)
             case _: name = str(name)
 
-        def report_end(log_level, disposition):
+        def report_end(log_level: str, disposition: str) -> None:
             duration = timedelta(seconds=perf_counter() - start_time)
             method = getattr(self, log_level)
             method(f"[{name}] {disposition} after {duration}")
@@ -101,7 +101,7 @@ _T1 = TypeVar("_T1", bound="ContextMeta")
 
 class ContextMeta(type):
     def __new__(cls: type[_T1], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T1:
-        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
+        def log(self: Any, log_level: str, *args: Any, **kwargs: Any) -> None:
             method = getattr(self.logger, log_level)
             method(*args, **kwargs)
 
@@ -150,9 +150,9 @@ class Context(metaclass=ContextMeta):
             s = encode_arg_value(args.__dict__[k])
             ctx.log_info(f"{k} = {s}")
 
-        return ctx
+        return cast(_T3, ctx)
 
-    def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager:
+    def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager[None]:
         return self.logger.span(*args, **kwargs)
 
 

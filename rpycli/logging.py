@@ -6,20 +6,20 @@ class LoggerProtocol(Protocol):
     def level(self) -> int:
         raise NotImplementedError()
 
-    def debug(self, *args: Any, **kwargs: Any):
+    def debug(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def info(self, *args: Any, **kwargs: Any):
+    def info(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def warning(self, *args: Any, **kwargs: Any):
+    def warning(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def error(self, *args: Any, **kwargs: Any):
+    def error(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def fatal(self, *args: Any, **kwargs: Any):
+    def fatal(self, *args: Any, **kwargs: Any) -> None:
         raise NotImplementedError()
 
-    def span(self, name: str) -> ContextManager:
+    def span(self, name: str) -> ContextManager[None]:
         raise NotImplementedError()

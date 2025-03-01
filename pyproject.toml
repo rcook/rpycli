@@ -17,4 +17,5 @@ dev = [
 packages = [
   "rpycli",
 ]
-strict = false
+strict = true
+warn_unused_ignores = false
