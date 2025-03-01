@@ -76,7 +76,7 @@ class Context(ContextMixin):
     def from_args(cls: type[_T3], args: Namespace, name: Optional[str] = None, **kwargs: Any) -> _T3:
         def encode_arg_value(obj: Any) -> str:
             if isinstance(obj, list):
-                return f"[{', '.join(encode_arg_value(item) for item in cast(list[Any], obj))}]"
+                return f"[{', '.join(encode_arg_value(item) for item in obj)}]"
             else:
                 return str(obj)
 
@@ -103,4 +103,4 @@ class Context(ContextMixin):
             s = encode_arg_value(args.__dict__[k])
             ctx.log_info(f"{k} = {s}")
 
-        return ctx
+        return cast(_T3, ctx)

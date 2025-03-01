@@ -1,5 +1,5 @@
 from logging import DEBUG
-from rpycli.context import Logger
+from rpycli.logger import Logger
 from rpycli.sample.foo import Foo
 
 
