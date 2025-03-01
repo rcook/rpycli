@@ -1,6 +1,5 @@
 from logging import DEBUG
 from rpycli.context import Logger
-from typing import Any, ContextManager
 
 
 def test_basics() -> None:
