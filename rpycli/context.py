@@ -1,29 +1,11 @@
 from argparse import Namespace
 from contextlib import contextmanager
 from dataclasses import dataclass, make_dataclass
-from functools import partialmethod
-from rpycli.log_level import LogLevel
 from rpycli.logger import Logger, LoggerProtocol
 from typing import Any, Generator, Optional, Protocol, TypeVar
 
 
 SKIP_ARGS: list[str] = ["command", "func"]
-
-
-_T1 = TypeVar("_T1", bound="ContextMeta")
-
-
-class ContextMeta(type):
-    def __new__(cls: type[_T1], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T1:
-        def log(self, log_level_name: str, *args: Any, **kwargs: Any) -> None:
-            method = getattr(self.logger, log_level_name)
-            method(*args, **kwargs)
-
-        t = super().__new__(cls, name, bases, namespace)
-        for l in LogLevel:
-            name = l.name.lower()
-            setattr(t, f"log_{name}", partialmethod(log, name))
-        return t
 
 
 class ContextBaseProtocol(Protocol):
