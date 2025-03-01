@@ -1,99 +1,13 @@
 from argparse import Namespace
-from colorama import Fore, Style
-from contextlib import AbstractContextManager, contextmanager
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, make_dataclass
-from datetime import timedelta
-from functools import cache, partialmethod
-from inspect import FrameInfo
+from functools import partialmethod
 from rpycli.log_level import LogLevel
-from rpycli.logging import LoggerProtocol
-from time import perf_counter
-from types import ModuleType
-from typing import Any, Generator, Optional, Tuple, TypeVar
-import contextlib
-import inspect
-import logging
-import sys
+from rpycli.logger import Logger, LoggerProtocol
+from typing import Any, Optional, TypeVar
 
 
 SKIP_ARGS: list[str] = ["command", "func"]
-
-
-_T0 = TypeVar("_T0", bound="LoggerMeta")
-
-
-class LoggerMeta(type):
-    def __new__(cls: type[_T0], name: str, bases: tuple[type, ...], namespace: dict[str, Any]) -> _T0:
-        def get_calling_module(records: list[FrameInfo]) -> ModuleType:
-            for record in records:
-                frame = record[0]
-                module = inspect.getmodule(frame)
-                assert module is not None
-                if module != this_module and module != contextlib:
-                    return module
-            raise RuntimeError()
-
-        def log(self, log_level: str, *args: Any, **kwargs: Any) -> None:
-            module = get_calling_module(inspect.stack())
-            logger = self.__class__._get_logger(
-                context_name=self.name,
-                log_level=self.log_level,
-                name=module.__name__)
-            method = getattr(logger, log_level)
-            method(*args, **kwargs)
-
-        this_module = sys.modules[__name__]
-        t = super().__new__(cls, name, bases, namespace)
-        for l in LogLevel:
-            name = l.name.lower()
-            setattr(t, name, partialmethod(log, name))
-        return t
-
-
-@dataclass(frozen=True)
-class Logger(metaclass=LoggerMeta):
-    name: Optional[str]
-    log_level: int
-
-    @contextmanager
-    def span(self, name: Optional[list | str]) -> Generator[None, None, None]:
-        match name:
-            case list() | tuple() as names: name = "/".join(str(x) for x in names)
-            case _: name = str(name)
-
-        def report_end(log_level, disposition):
-            duration = timedelta(seconds=perf_counter() - start_time)
-            method = getattr(self, log_level)
-            method(f"[{name}] {disposition} after {duration}")
-
-        start_time = perf_counter()
-        self.info(f"[{name}] started")  # type: ignore
-        try:
-            yield
-            report_end(log_level="info", disposition="completed")
-        except:
-            report_end(log_level="error", disposition="failed")
-            raise
-
-    @cache
-    @staticmethod
-    def _get_logger(context_name: Optional[str], log_level: int, name: str) -> logging.Logger:
-        name = context_name \
-            if name == "__main__" and context_name is not None \
-            else name
-        formatter = ColouredLevelFormatter(
-            Fore.LIGHTMAGENTA_EX + "[%(asctime)s] " +
-            Fore.LIGHTYELLOW_EX + "[%(name)s] " +
-            "%(level_colour)s[%(levelname)s] " +
-            Fore.LIGHTGREEN_EX + "%(message)s" +
-            Style.RESET_ALL)
-        handler = logging.StreamHandler()
-        handler.setLevel(log_level)
-        handler.setFormatter(formatter)
-        logger = logging.getLogger(name)
-        logger.setLevel(log_level)
-        logger.addHandler(handler)
-        return logger
 
 
 _T1 = TypeVar("_T1", bound="ContextMeta")
@@ -154,16 +68,3 @@ class Context(metaclass=ContextMeta):
 
     def span(self, *args: Any, **kwargs: Any) -> AbstractContextManager:
         return self.logger.span(*args, **kwargs)
-
-
-class ColouredLevelFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        match record.levelno:
-            case logging.DEBUG: level_colour = Fore.LIGHTMAGENTA_EX
-            case logging.INFO: level_colour = Fore.LIGHTWHITE_EX
-            case logging.WARNING: level_colour = Fore.LIGHTYELLOW_EX
-            case logging.ERROR: level_colour = Fore.RED
-            case logging.FATAL: level_colour = Fore.LIGHTRED_EX
-            case _: raise NotImplementedError()
-        record.level_colour = level_colour
-        return super().format(record)

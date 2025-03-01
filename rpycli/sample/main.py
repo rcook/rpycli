@@ -6,10 +6,16 @@ from rpycli.sample.foo import Foo
 def main() -> None:
     logger = Logger("sample-logger", DEBUG)
     logger.info("info")
-    with logger.span("main span"):
+
+    with logger.span():
+        pass
+
+    with logger.span("path", "to", "main span"):
         logger.info("in main span")
         foo = Foo()
         foo.run(logger)
+
+    logger.error("error")
 
 
 if __name__ == "__main__":
