@@ -2,8 +2,7 @@ from argparse import \
     Action, \
     ArgumentTypeError, \
     BooleanOptionalAction, \
-    Namespace, \
-    _SubParsersAction  # type: ignore[reportPrivateUsage]
+    Namespace
 from dataclasses import \
     MISSING, \
     _MISSING_TYPE  # type: ignore[reportPrivateUsage]
@@ -12,7 +11,7 @@ from functools import cached_property
 from pathlib import Path
 from rpycli.arg_enum import ArgEnum
 from rpycli.log_level import LogLevel
-from typing import Any, Optional, Protocol, Self, Sequence, Tuple, TypeVar, overload
+from typing import Any, Optional, Protocol, Self, Sequence, Tuple, TypeVar, cast, overload
 import argparse
 import rpycli.invoke
 import sys
@@ -69,7 +68,7 @@ class ArgumentParser(argparse.ArgumentParser):
         assert not hasattr(parser, "_RPYCLI_parent")
         setattr(parser, "_RPYCLI_parent", self)
 
-        return parser
+        return cast(Self, parser)
 
     def add_argument(self, *args: Any, redact: bool | _MISSING_TYPE = MISSING, **kwargs: Any) -> Action:
         help = kwargs.get("help", MISSING)
@@ -168,7 +167,7 @@ class ArgumentParser(argparse.ArgumentParser):
         self.__class__.invoke_func(args, **kwargs)
 
     @cached_property
-    def _commands(self) -> _SubParsersAction[Self]:
+    def _commands(self) -> Any:
         parent = getattr(self, "_RPYCLI_parent", None)
         if parent is not None:
             group_action = parent._subparsers._group_actions[0]
