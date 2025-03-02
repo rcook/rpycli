@@ -48,4 +48,8 @@ def test_logger() -> None:
         called = True
         assert span is None
 
+    with logger.span("test-span", "child0") as span:
+        called = True
+        assert span is None
+
     assert called
